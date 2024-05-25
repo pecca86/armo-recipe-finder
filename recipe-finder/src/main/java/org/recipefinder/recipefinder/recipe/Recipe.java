@@ -83,7 +83,7 @@ public class Recipe {
     }
 
     public void setIngredients(List<String> ingredients) {
-        this.ingredients = String.join(",", ingredients);
+        this.ingredients = String.join(",", ingredients).toLowerCase();
     }
 
 }

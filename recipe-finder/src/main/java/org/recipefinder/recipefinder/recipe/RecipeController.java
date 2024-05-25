@@ -27,14 +27,15 @@ public class RecipeController {
     }
 
     @GetMapping
-    public ResponseEntity<PaginatedRecipeResponse> getRecipes2(Authentication authentication,
+    public ResponseEntity<PaginatedRecipeResponse> getRecipes(Authentication authentication,
                                                                @RequestParam(required = false) String description,
                                                                @RequestParam(required = false) Boolean isVegan,
                                                                @RequestParam(required = false) Integer numServings,
                                                                @RequestParam(required = false) String ingredients,
-                                                               @RequestParam(required = false, defaultValue="0") int page,
+                                                               @RequestParam(required = false) String excludeIngredients,
+                                                               @RequestParam(required = false, defaultValue = "0") int page,
                                                                @RequestParam(required = false, defaultValue = "100") int pageSize) {
-        PaginatedRecipeResponse response = recipeService.getRecipes(authentication, description, isVegan, numServings, ingredients, page, pageSize);
+        PaginatedRecipeResponse response = recipeService.getRecipes(authentication, description, isVegan, numServings, ingredients, excludeIngredients, page, pageSize);
         return ResponseEntity.ok(response);
     }
 

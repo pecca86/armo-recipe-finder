@@ -47,7 +47,15 @@ public class RecipeService {
         return new RecipeResponse(HttpStatus.OK.value(), "Recipe retrieved successfully", recipe);
     }
 
-    public PaginatedRecipeResponse getRecipes(Authentication authentication, String description, Boolean isVegan, Integer numServings, String ingredients, int page, int pageSize) {
+    public PaginatedRecipeResponse getRecipes(Authentication authentication,
+                                              String description,
+                                              Boolean isVegan,
+                                              Integer numServings,
+                                              String ingredients,
+                                              String excludeIngredients,
+                                              int page,
+                                              int pageSize) {
+
         Pageable pageable = PageRequest.of(page, pageSize);
         Customer loggedInCustomer = loggedInCustomerService.getLoggedInCustomer(authentication);
 
@@ -55,7 +63,7 @@ public class RecipeService {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(criteriaBuilder.equal(root.get("customer"), loggedInCustomer));
             if (description != null) {
-                predicates.add(criteriaBuilder.like(root.get("description"), "%" + description + "%"));
+                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), "%" + description.toLowerCase() + "%"));
             }
             if (isVegan != null) {
                 predicates.add(criteriaBuilder.equal(root.get("isVegan"), isVegan));
@@ -64,7 +72,12 @@ public class RecipeService {
                 predicates.add(criteriaBuilder.equal(root.get("numServings"), numServings));
             }
             if (ingredients != null) {
-                predicates.add(criteriaBuilder.like(root.get("ingredients"), "%" + ingredients + "%"));
+                List<String> ingredientsList = List.of(ingredients.split(","));
+                ingredientsList.forEach(ingredient -> predicates.add(criteriaBuilder.like(root.get("ingredients"), "%" + ingredient.toLowerCase() + "%")));
+            }
+            if (excludeIngredients != null) {
+                List<String> excludeIngredientsList = List.of(excludeIngredients.split(","));
+                excludeIngredientsList.forEach(ingredient -> predicates.add(criteriaBuilder.notLike(root.get("ingredients"), "%" + ingredient.toLowerCase() + "%")));
             }
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
