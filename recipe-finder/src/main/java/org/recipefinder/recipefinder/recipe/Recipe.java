@@ -7,7 +7,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.recipefinder.recipefinder.customer.Customer;
-import java.util.Map;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Entity(name = "Recipe")
 @Table(name = "recipe")
@@ -56,13 +58,13 @@ public class Recipe {
     @JsonProperty("num_servings")
     private Integer numServings;
 
-    @ElementCollection(targetClass = String.class, fetch = FetchType.EAGER)
-    @CollectionTable(name = "ingredients", joinColumns = @JoinColumn(name = "recipe_id"))
+    @NotBlank(message = "Ingredients are required")
     @Column(
-            name = "quantity",
-            nullable = false
+            name = "ingredients",
+            nullable = false,
+            columnDefinition = "TEXT"
     )
-    private Map<String, String> ingredients;
+    private String ingredients;
 
     @JsonIgnore
     @ManyToOne
@@ -75,5 +77,13 @@ public class Recipe {
             )
     )
     private Customer customer;
+
+    public List<String> getIngredients() {
+        return Arrays.asList(ingredients.split(","));
+    }
+
+    public void setIngredients(List<String> ingredients) {
+        this.ingredients = String.join(",", ingredients);
+    }
 
 }

@@ -1,8 +1,8 @@
 package org.recipefinder.recipefinder.recipe;
 
 import jakarta.validation.Valid;
+import org.recipefinder.recipefinder.recipe.dto.PaginatedRecipeResponse;
 import org.recipefinder.recipefinder.recipe.dto.RecipeResponse;
-import org.recipefinder.recipefinder.recipe.dto.RecipesResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -27,8 +27,15 @@ public class RecipeController {
     }
 
     @GetMapping
-    public ResponseEntity<RecipesResponse> getRecipes(@CurrentSecurityContext(expression = "authentication") Authentication authentication) {
-        return ResponseEntity.status(200).body(recipeService.getRecipes(authentication));
+    public ResponseEntity<PaginatedRecipeResponse> getRecipes2(Authentication authentication,
+                                                               @RequestParam(required = false) String description,
+                                                               @RequestParam(required = false) Boolean isVegan,
+                                                               @RequestParam(required = false) Integer numServings,
+                                                               @RequestParam(required = false) String ingredients,
+                                                               @RequestParam(required = false, defaultValue="0") int page,
+                                                               @RequestParam(required = false, defaultValue = "100") int pageSize) {
+        PaginatedRecipeResponse response = recipeService.getRecipes(authentication, description, isVegan, numServings, ingredients, page, pageSize);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping

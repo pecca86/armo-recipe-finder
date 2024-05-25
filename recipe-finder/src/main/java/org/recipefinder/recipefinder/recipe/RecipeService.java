@@ -1,35 +1,42 @@
 package org.recipefinder.recipefinder.recipe;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.transaction.Transactional;
 import org.recipefinder.recipefinder.auth.LoggedInCustomerService;
 import org.recipefinder.recipefinder.customer.Customer;
 import org.recipefinder.recipefinder.customer.CustomerRepository;
 
-import org.recipefinder.recipefinder.exceptions.customer.CustomerNotFoundException;
 import org.recipefinder.recipefinder.exceptions.recipe.RecipeAccessException;
 import org.recipefinder.recipefinder.exceptions.recipe.RecipeNotFoundException;
+import org.recipefinder.recipefinder.recipe.dto.PaginatedRecipeResponse;
 import org.recipefinder.recipefinder.recipe.dto.RecipeResponse;
-import org.recipefinder.recipefinder.recipe.dto.RecipesResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 public class RecipeService {
 
-    private final RecipeRepository recipeRepository;
     private final CustomerRepository customerRepository;
     private final LoggedInCustomerService loggedInCustomerService;
     private final EntityManager entityManager;
+    private final RecipePagingRepository recipePagingRepository;
 
     @Autowired
-    public RecipeService(CustomerRepository customerRepository, RecipeRepository recipeRepository, LoggedInCustomerService loggedInCustomerService, EntityManager entityManager) {
+    public RecipeService(CustomerRepository customerRepository, LoggedInCustomerService loggedInCustomerService, EntityManager entityManager, RecipePagingRepository recipePagingRepository) {
         this.customerRepository = customerRepository;
-        this.recipeRepository = recipeRepository;
         this.loggedInCustomerService = loggedInCustomerService;
         this.entityManager = entityManager;
+        this.recipePagingRepository = recipePagingRepository;
     }
 
     public RecipeResponse getRecipe(Authentication authentication, Long recipeId) {
@@ -40,12 +47,30 @@ public class RecipeService {
         return new RecipeResponse(HttpStatus.OK.value(), "Recipe retrieved successfully", recipe);
     }
 
-    public RecipesResponse getRecipes(Authentication authentication) throws CustomerNotFoundException {
-        return new RecipesResponse(
-                HttpStatus.OK.value(),
-                "Recipes retrieved successfully",
-                loggedInCustomerService.getLoggedInCustomer(authentication).getRecipes()
-        );
+    public PaginatedRecipeResponse getRecipes(Authentication authentication, String description, Boolean isVegan, Integer numServings, String ingredients, int page, int pageSize) {
+        Pageable pageable = PageRequest.of(page, pageSize);
+        Customer loggedInCustomer = loggedInCustomerService.getLoggedInCustomer(authentication);
+
+        Specification<Recipe> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(criteriaBuilder.equal(root.get("customer"), loggedInCustomer));
+            if (description != null) {
+                predicates.add(criteriaBuilder.like(root.get("description"), "%" + description + "%"));
+            }
+            if (isVegan != null) {
+                predicates.add(criteriaBuilder.equal(root.get("isVegan"), isVegan));
+            }
+            if (numServings != null) {
+                predicates.add(criteriaBuilder.equal(root.get("numServings"), numServings));
+            }
+            if (ingredients != null) {
+                predicates.add(criteriaBuilder.like(root.get("ingredients"), "%" + ingredients + "%"));
+            }
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<Recipe> recipes = recipePagingRepository.findAll(spec, pageable);
+        return new PaginatedRecipeResponse(recipes);
     }
 
     @Transactional
