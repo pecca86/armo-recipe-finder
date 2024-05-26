@@ -1,8 +1,10 @@
-create table customer
+create table if not exists customer
 (
-    id         INT,
-    email      VARCHAR(50),
-    first_name VARCHAR(50),
-    last_name  VARCHAR(50),
-    password   VARCHAR(50)
+    id         bigserial not null,
+    email      VARCHAR(50) not null ,
+    first_name VARCHAR(50) not null ,
+    last_name  VARCHAR(50) not null,
+    password   VARCHAR(50) not null,
+    primary key (id),
+    UNIQUE (email)
 );

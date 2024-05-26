@@ -84,6 +84,17 @@ public class ApiExceptionHandler {
         return new ResponseEntity<>(exception, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(value = {org.recipefinder.recipefinder.exceptions.AuthenticationException.class})
+    public ResponseEntity<Object> handleAuthenticationException(org.recipefinder.recipefinder.exceptions.AuthenticationException e) {
+        ApiException exception = new ApiException(
+                e.getMessage(),
+                HttpStatus.UNAUTHORIZED,
+                ZonedDateTime.now()
+        );
+        LOGGER.error("AuthenticationException: {}", e.getMessage(), e);
+        return new ResponseEntity<>(exception, HttpStatus.UNAUTHORIZED);
+    }
+
     @ExceptionHandler(value = {HttpMessageNotReadableException.class})
     public ResponseEntity<Object> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
         // parse only the values that are inside the []
