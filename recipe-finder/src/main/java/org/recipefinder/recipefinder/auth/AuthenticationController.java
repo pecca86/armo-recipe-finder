@@ -4,12 +4,9 @@ import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
 import org.recipefinder.recipefinder.auth.dto.*;
-import org.recipefinder.recipefinder.customer.Customer;
 import org.recipefinder.recipefinder.exceptions.customer.CustomerNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;

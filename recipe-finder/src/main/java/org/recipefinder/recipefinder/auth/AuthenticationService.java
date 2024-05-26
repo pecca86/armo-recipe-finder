@@ -2,22 +2,16 @@ package org.recipefinder.recipefinder.auth;
 
 import org.recipefinder.recipefinder.auth.dto.AuthenticationRequest;
 import org.recipefinder.recipefinder.auth.dto.AuthenticationResponse;
-import org.recipefinder.recipefinder.auth.dto.NewPasswordRequest;
 import org.recipefinder.recipefinder.auth.dto.RegisterRequest;
 import org.recipefinder.recipefinder.config.JwtService;
 import org.recipefinder.recipefinder.customer.Customer;
 import org.recipefinder.recipefinder.customer.CustomerRepository;
 import org.recipefinder.recipefinder.customer.Role;
-import org.recipefinder.recipefinder.exceptions.customer.CustomerAlreadyExistsException;
 import org.recipefinder.recipefinder.exceptions.customer.CustomerNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpMessage;
-import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
