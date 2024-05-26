@@ -46,19 +46,4 @@ public class AuthenticationController {
         return ResponseEntity.status(429).body(new AuthenticationResponse(HttpStatus.TOO_MANY_REQUESTS.value(), HttpStatus.TOO_MANY_REQUESTS.toString(), ""));
     }
 
-    @GetMapping("/me")
-    public ResponseEntity<Customer> getCustomer(@CurrentSecurityContext(expression = "authentication") Authentication authentication) {
-        return ResponseEntity.ok(authenticationService.getLoggedInCustomer(authentication));
-
-    }
-
-    @PostMapping("/password")
-    public ResponseEntity<String> changePassword(@CurrentSecurityContext(expression = "authentication") Authentication authentication,
-                                                 @RequestBody NewPasswordRequest password) {
-        if (bucket.tryConsume(1)) {
-            authenticationService.updatePassword(password, authentication);
-            return ResponseEntity.ok("Password updated");
-        }
-        return ResponseEntity.status(429).body("Too many requests, please try again later");
-    }
 }

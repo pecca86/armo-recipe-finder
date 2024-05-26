@@ -28,15 +28,13 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final LoggedInCustomerService loggedInCustomerService;
 
     @Autowired
-    public AuthenticationService(AuthenticationManager authenticationManager, CustomerRepository customerRepository, PasswordEncoder passwordEncoder, JwtService jwtService, LoggedInCustomerService loggedInCustomerService) {
+    public AuthenticationService(AuthenticationManager authenticationManager, CustomerRepository customerRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.authenticationManager = authenticationManager;
         this.customerRepository = customerRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
-        this.loggedInCustomerService = loggedInCustomerService;
     }
 
     public AuthenticationResponse register(RegisterRequest registerRequest) {
@@ -67,18 +65,5 @@ public class AuthenticationService {
 
         var jwtToken = jwtService.generateJwtToken(customer);
         return new AuthenticationResponse(HttpStatus.OK.value(), HttpStatus.OK.toString(), jwtToken);
-    }
-
-    public Customer getLoggedInCustomer(Authentication authentication) throws CustomerNotFoundException {
-        String email = authentication.getName();
-        return customerRepository.findCustomerByEmail(email)
-                                 .orElseThrow(() -> new CustomerNotFoundException("Customer not found"));
-
-    }
-
-    public void updatePassword(NewPasswordRequest passwordRequest, Authentication authentication) {
-        Customer customerToUpdate = loggedInCustomerService.getLoggedInCustomer(authentication);
-        customerToUpdate.setPassword(passwordEncoder.encode(passwordRequest.password()));
-        customerRepository.save(customerToUpdate);
     }
 }
