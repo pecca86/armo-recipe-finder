@@ -28,7 +28,7 @@ import static org.mockito.BDDMockito.given;
 import static org.hamcrest.Matchers.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class AuthenticationControllerTest {
+class AuthenticationTest {
 
     private static final String EMAIL = "jd@jd.com";
     private static final String FIRST_NAME = "John";

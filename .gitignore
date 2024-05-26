@@ -60,3 +60,5 @@ build/
 .vscode/
 /recipe-finder/logs/app.log.2024-05-25.0.gz
 /logs/app.log.2024-05-25.0.gz
+/logs/app.log.2024-05-26.0.gz
+/recipe-finder/logs/app.log.2024-05-26.0.gz
