@@ -86,7 +86,4 @@ public class Recipe {
         this.ingredients = String.join(",", ingredients).toLowerCase();
     }
 
-    public void setCustomer(Customer customer) {
-        this.customer = customer;
-    }
 }

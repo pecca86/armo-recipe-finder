@@ -46,7 +46,8 @@ public class RecipeService {
                                                .filter(r -> r.getId().equals(recipeId))
                                                .findFirst()
                                                .orElseThrow(() -> new RecipeNotFoundException("Recipe not found"));
-        return new RecipeResponse(HttpStatus.OK.value(), "Recipe retrieved successfully", recipe);
+        RecipeDTO recipeDTO = RecipeMapper.INSTANCE.mapToRecipeDTO(recipe);
+        return new RecipeResponse(HttpStatus.OK.value(), "Recipe retrieved successfully", recipeDTO);
     }
 
     public PaginatedRecipeResponse getRecipes(Authentication authentication,
@@ -85,22 +86,23 @@ public class RecipeService {
         };
 
         Page<Recipe> recipes = recipePagingRepository.findAll(spec, pageable);
-        return new PaginatedRecipeResponse(recipes);
+        Page<RecipeDTO> recipeDTOs = recipes.map(RecipeMapper.INSTANCE::mapToRecipeDTO);
+        return new PaginatedRecipeResponse(recipeDTOs);
     }
 
     @Transactional
-    public RecipeResponse createRecipe(Authentication authentication, RecipeDTO recipeDTO) {
-        if (recipeDTO == null) {
+    public RecipeResponse createRecipe(Authentication authentication, Recipe recipe) {
+        if (recipe == null) {
             throw new RecipeAccessException("Recipe cannot be null");
         }
-
-        Recipe recipe = RecipeMapper.INSTANCE.mapToRecipe(recipeDTO);
 
         Customer loggedInCustomer = loggedInCustomerService.getLoggedInCustomer(authentication);
         loggedInCustomer.addRecipe(recipe);
         entityManager.persist(recipe); // so we can get the ID of the recipe
         customerRepository.save(loggedInCustomer);
-        return new RecipeResponse(HttpStatus.CREATED.value(), "Recipe created successfully", recipe);
+
+        RecipeDTO createdRecipe = RecipeMapper.INSTANCE.mapToRecipeDTO(recipe);
+        return new RecipeResponse(HttpStatus.CREATED.value(), "Recipe created successfully", createdRecipe);
     }
 
     public RecipeResponse updateRecipe(Authentication authentication, Recipe recipe, Long recipeId) {
@@ -119,7 +121,8 @@ public class RecipeService {
                                }, () -> {
                                    throw new RecipeNotFoundException("Recipe with id " + recipeId + " not found");
                                });
-        return new RecipeResponse(HttpStatus.OK.value(), "Recipe updated successfully", recipe);
+        RecipeDTO recipeDTO = RecipeMapper.INSTANCE.mapToRecipeDTO(recipe);
+        return new RecipeResponse(HttpStatus.OK.value(), "Recipe updated successfully", recipeDTO);
     }
 
     public RecipeResponse deleteRecipe(Authentication authentication, Long recipeId) {

@@ -42,8 +42,8 @@ public class RecipeController {
 
     @PostMapping
     public ResponseEntity<RecipeResponse> createRecipe(@CurrentSecurityContext(expression = "authentication") Authentication authentication,
-                                                       @RequestBody @Valid RecipeDTO recipeDTO) {
-        return ResponseEntity.status(201).body(recipeService.createRecipe(authentication, recipeDTO));
+                                                       @RequestBody @Valid Recipe recipe) {
+        return ResponseEntity.status(201).body(recipeService.createRecipe(authentication, recipe));
     }
 
     @PutMapping("{recipeId}")

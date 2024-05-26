@@ -105,7 +105,6 @@ public class Customer implements UserDetails {
     )
     private String password;
 
-    @Transient
     @OneToMany(
             mappedBy = "customer",
             cascade = CascadeType.ALL,
