@@ -105,6 +105,7 @@ public class Customer implements UserDetails {
     )
     private String password;
 
+    @Transient
     @OneToMany(
             mappedBy = "customer",
             cascade = CascadeType.ALL,
@@ -134,6 +135,7 @@ public class Customer implements UserDetails {
         }
     }
 
+    // AUTH RELATED
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(role.name()));

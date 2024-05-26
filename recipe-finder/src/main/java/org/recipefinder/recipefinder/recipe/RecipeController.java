@@ -2,6 +2,7 @@ package org.recipefinder.recipefinder.recipe;
 
 import jakarta.validation.Valid;
 import org.recipefinder.recipefinder.recipe.dto.PaginatedRecipeResponse;
+import org.recipefinder.recipefinder.recipe.dto.RecipeDTO;
 import org.recipefinder.recipefinder.recipe.dto.RecipeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -41,8 +42,8 @@ public class RecipeController {
 
     @PostMapping
     public ResponseEntity<RecipeResponse> createRecipe(@CurrentSecurityContext(expression = "authentication") Authentication authentication,
-                                                       @RequestBody @Valid Recipe recipe) {
-        return ResponseEntity.status(201).body(recipeService.createRecipe(authentication, recipe));
+                                                       @RequestBody @Valid RecipeDTO recipeDTO) {
+        return ResponseEntity.status(201).body(recipeService.createRecipe(authentication, recipeDTO));
     }
 
     @PutMapping("{recipeId}")

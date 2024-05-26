@@ -10,7 +10,9 @@ import org.recipefinder.recipefinder.customer.CustomerRepository;
 import org.recipefinder.recipefinder.exceptions.recipe.RecipeAccessException;
 import org.recipefinder.recipefinder.exceptions.recipe.RecipeNotFoundException;
 import org.recipefinder.recipefinder.recipe.dto.PaginatedRecipeResponse;
+import org.recipefinder.recipefinder.recipe.dto.RecipeDTO;
 import org.recipefinder.recipefinder.recipe.dto.RecipeResponse;
+import org.recipefinder.recipefinder.recipe.mapper.RecipeMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -87,10 +89,12 @@ public class RecipeService {
     }
 
     @Transactional
-    public RecipeResponse createRecipe(Authentication authentication, Recipe recipe) {
-        if (recipe == null) {
+    public RecipeResponse createRecipe(Authentication authentication, RecipeDTO recipeDTO) {
+        if (recipeDTO == null) {
             throw new RecipeAccessException("Recipe cannot be null");
         }
+
+        Recipe recipe = RecipeMapper.INSTANCE.mapToRecipe(recipeDTO);
 
         Customer loggedInCustomer = loggedInCustomerService.getLoggedInCustomer(authentication);
         loggedInCustomer.addRecipe(recipe);
