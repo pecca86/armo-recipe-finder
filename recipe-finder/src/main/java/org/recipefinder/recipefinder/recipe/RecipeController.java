@@ -2,7 +2,6 @@ package org.recipefinder.recipefinder.recipe;
 
 import jakarta.validation.Valid;
 import org.recipefinder.recipefinder.recipe.dto.PaginatedRecipeResponse;
-import org.recipefinder.recipefinder.recipe.dto.RecipeDTO;
 import org.recipefinder.recipefinder.recipe.dto.RecipeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
