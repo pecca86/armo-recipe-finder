@@ -137,19 +137,15 @@ class RecipeIntegrationTest {
            .andExpect(status().is(403));
     }
 
-    // Test getRecipes
-    // X    1. Should return 200 when getting recipes for logged-in user
-    // 2. Should return 401 when getting recipes for unauthenticated user
-    // 3. Should return 404 when getting recipes for another user
-    // 4. Test Filters:
-    // - numServings
-    // - isVegan
-    // - ingredients
-    // - excludeIngredients
-    // - description
-    // - page
-    // - pageSize
-    // 4.1 Test combination of filters
+    @Test
+    void should_return_403_when_getting_recipes_for_unauthenticated_user() throws Exception {
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes")
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().is(403));
+    }
+
     @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
     @Test
     void should_return_200_when_getting_recipes_for_logged_in_user() throws Exception {
@@ -308,6 +304,39 @@ class RecipeIntegrationTest {
            .andExpect(content().json(expectedPageNumberAndPageSizeResponse));
     }
 
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @ParameterizedTest
+    @CsvSource(value = {
+            "numServings,4,ingredients,Ingredient1",
+            "isVegan,true,excludeIngredients,flour",
+            "description,recipe,ingredients,Ingredient2",
+    })
+    void should_return_one_result_when_combined_filters_match(String filter1, String filterValue1, String filter2, String filterValue2) throws Exception {
+        String expectedCombinedFiltersMatch = "{\"recipes\":{\"totalElements\":1,\"totalPages\":1,\"first\":true,\"last\":true,\"size\":100,\"content\":[{\"id\":" + current_recipe_id + ",\"description\":\"Recipe 1\",\"ingredients\":[\"ingredient1\",\"ingredient2\"],\"is_vegan\":true,\"num_servings\":4}],\"number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":1,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"offset\":0,\"paged\":true,\"unpaged\":false},\"empty\":false}}";
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes?" + filter1 + "=" + filterValue1 + "&" + filter2 + "=" + filterValue2)
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().isOk())
+           .andExpect(content().json(expectedCombinedFiltersMatch));
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @ParameterizedTest
+    @CsvSource(value = {
+            "numServings,40,ingredients,Ingredient1",
+            "isVegan,false,excludeIngredients,flour",
+            "description,recipe,ingredients,Ingredient20",
+    })
+    void should_return_no_results_when_combined_filters_do_not_match(String filter1, String filterValue1, String filter2, String filterValue2) throws Exception {
+        String expectedCombinedFiltersNoMatch = "{\"recipes\":{\"totalElements\":0,\"totalPages\":0,\"first\":true,\"last\":true,\"size\":100,\"content\":[],\"number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":0,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"offset\":0,\"paged\":true,\"unpaged\":false},\"empty\":true}}";
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes?" + filter1 + "=" + filterValue1 + "&" + filter2 + "=" + filterValue2)
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().isOk())
+           .andExpect(content().json(expectedCombinedFiltersNoMatch));
+    }
 
     // Test createRecipe
     // 1. Should return 201 when creating a recipe for logged-in user
