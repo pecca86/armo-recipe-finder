@@ -122,7 +122,7 @@ public class RecipeService {
                                    throw new RecipeNotFoundException("Recipe with id " + recipeId + " not found");
                                });
         RecipeDTO recipeDTO = RecipeMapper.INSTANCE.mapToRecipeDTO(recipe);
-        return new RecipeResponse(HttpStatus.OK.value(), "Recipe updated successfully", recipeDTO);
+        return new RecipeResponse(HttpStatus.CREATED.value(), "Recipe updated successfully", recipeDTO);
     }
 
     public RecipeResponse deleteRecipe(Authentication authentication, Long recipeId) {
