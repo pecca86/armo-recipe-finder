@@ -1,4 +1,4 @@
-package org.recipefinder.recipefinder.cache;
+package org.recipefinder.recipefinder.config.cache;
 
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;

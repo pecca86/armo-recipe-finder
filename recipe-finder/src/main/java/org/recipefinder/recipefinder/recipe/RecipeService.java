@@ -14,6 +14,8 @@ import org.recipefinder.recipefinder.recipe.dto.RecipeDTO;
 import org.recipefinder.recipefinder.recipe.dto.RecipeResponse;
 import org.recipefinder.recipefinder.recipe.mapper.RecipeMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -41,6 +43,7 @@ public class RecipeService {
         this.recipePagingRepository = recipePagingRepository;
     }
 
+    @Cacheable(value = "recipes", key = "#recipeId")
     public RecipeResponse getRecipe(Authentication authentication, Long recipeId) {
         Recipe recipe = loggedInCustomerService.getLoggedInCustomer(authentication).getRecipes().stream()
                                                .filter(r -> r.getId().equals(recipeId))
@@ -50,6 +53,7 @@ public class RecipeService {
         return new RecipeResponse(HttpStatus.OK.value(), "Recipe retrieved successfully", recipeDTO);
     }
 
+    @Cacheable(value = "recipes", key = "{#authentication.name, #description, #isVegan, #numServings, #ingredients, #excludeIngredients, #page, #pageSize}")
     public PaginatedRecipeResponse getRecipes(Authentication authentication,
                                               String description,
                                               Boolean isVegan,
@@ -91,6 +95,7 @@ public class RecipeService {
     }
 
     @Transactional
+    @CacheEvict(value = "recipes", allEntries = true)
     public RecipeResponse createRecipe(Authentication authentication, Recipe recipe) {
         if (recipe == null) {
             throw new RecipeAccessException("Recipe cannot be null");
@@ -105,6 +110,7 @@ public class RecipeService {
         return new RecipeResponse(HttpStatus.CREATED.value(), "Recipe created successfully", createdRecipe);
     }
 
+    @CacheEvict(value = "recipes", allEntries = true)
     public RecipeResponse updateRecipe(Authentication authentication, Recipe recipe, Long recipeId) {
         if (recipe == null) {
             throw new RecipeAccessException("Missing recipe data");
@@ -125,6 +131,7 @@ public class RecipeService {
         return new RecipeResponse(HttpStatus.CREATED.value(), "Recipe updated successfully", recipeDTO);
     }
 
+    @CacheEvict(value = "recipes", allEntries = true)
     public RecipeResponse deleteRecipe(Authentication authentication, Long recipeId) {
         Customer customer = loggedInCustomerService.getLoggedInCustomer(authentication);
         boolean wasDeleted = customer.getRecipes()
