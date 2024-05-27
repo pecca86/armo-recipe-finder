@@ -1,0 +1,353 @@
+package org.recipefinder.recipefinder.recipe;
+
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.recipefinder.recipefinder.auth.LoggedInCustomerService;
+import org.recipefinder.recipefinder.customer.Customer;
+import org.recipefinder.recipefinder.customer.CustomerRepository;
+import org.recipefinder.recipefinder.customer.Role;
+import org.recipefinder.recipefinder.recipe.dto.RecipeDTO;
+import org.recipefinder.recipefinder.recipe.dto.RecipeResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
+import org.testcontainers.containers.PostgreSQLContainer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.Arrays;
+import java.util.List;
+
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class RecipeIntegrationTest {
+
+    private final String CUSTOMER1_EMAIL = "jd@jd.com";
+    private final String CUSTOMER1_FIRST_NAME = "John";
+    private final String CUSTOMER1_LAST_NAME = "Doe";
+    private final String CUSTOMER1_PASSWORD = "password";
+    private final String CUSTOMER1_DESCRIPTION = "Recipe 1";
+    private final int CUSTOMER1_NUM_SERVINGS = 4;
+    private final boolean CUSTOMER1_IS_VEGAN = true;
+    private final String CUSTOMER1_INGREDIENT_1 = "ingredient1";
+    private final String CUSTOMER1_INGREDIENT_2 = "ingredient2";
+
+    private final String CUSTOMER2_EMAIL = "second@jd.com";
+    private final String CUSTOMER2_FIRST_NAME = "Joe";
+    private final String CUSTOMER2_LAST_NAME = "Strummer";
+    private final String CUSTOMER2_PASSWORD = "secret";
+    private final String CUSTOMER_2_DESCRIPTION = "Customer 2 Description";
+    private final boolean CUSTOMER2_IS_VEGAN = false;
+    private final int CUSTOMER2_NUM_SERVINGS = 10;
+    private final String CUSTOMER_2_INGREDIENT_1 = "customer 2 ingredient 1";
+    private final String CUSTOMER_2_INGREDIENT_2 = "customer 2 ingredient 2";
+
+    private Long current_recipe_id;
+
+    @LocalServerPort
+    private Integer port;
+
+    static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:15-alpine");
+
+    @BeforeAll
+    static void beforeAll() {
+        postgreSQLContainer.start();
+    }
+
+    @AfterAll
+    static void afterAll() {
+        postgreSQLContainer.stop();
+    }
+
+    @DynamicPropertySource
+    static void configureDatasource(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgreSQLContainer::getJdbcUrl);
+        registry.add("spring.datasource.username", postgreSQLContainer::getUsername);
+        registry.add("spring.datasource.password", postgreSQLContainer::getPassword);
+    }
+
+    private MockMvc mvc;
+    @Autowired
+    private WebApplicationContext context;
+    @Autowired
+    CustomerRepository customerRepository;
+    @Autowired
+    LoggedInCustomerService loggedInCustomerService;
+    @MockBean
+    AuthenticationManager authenticationManager;
+
+    Customer customer1;
+    Customer customer2;
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    @BeforeEach
+    void setUp() {
+        mvc = MockMvcBuilders
+                .webAppContextSetup(context)
+                .apply(springSecurity())
+                .build();
+
+        customerRepository.deleteAll();
+        setUpCustomersAndPersist();
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @Test
+    void should_return_200_when_getting_a_recipe_that_exists_for_logged_in_user() throws Exception {
+        RecipeDTO recipeDTO = new RecipeDTO(current_recipe_id, CUSTOMER1_DESCRIPTION, CUSTOMER1_IS_VEGAN, CUSTOMER1_NUM_SERVINGS, Arrays.asList(CUSTOMER1_INGREDIENT_1, CUSTOMER1_INGREDIENT_2));
+        RecipeResponse expected = new RecipeResponse(HttpStatus.OK.value(), "Recipe retrieved successfully", recipeDTO);
+
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes/" + current_recipe_id)
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().isOk())
+           .andExpect(content().json(objectMapper.writeValueAsString(expected)));
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @Test
+    void should_return_404_when_getting_a_recipe_that_does_not_exists_for_logged_in_user() throws Exception {
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes/2")
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().is(404));
+    }
+
+    @Test
+    void should_return_403_when_trying_to_access_without_credentials() throws Exception {
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes/1")
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().is(403));
+    }
+
+    // Test getRecipes
+    // X    1. Should return 200 when getting recipes for logged-in user
+    // 2. Should return 401 when getting recipes for unauthenticated user
+    // 3. Should return 404 when getting recipes for another user
+    // 4. Test Filters:
+    // - numServings
+    // - isVegan
+    // - ingredients
+    // - excludeIngredients
+    // - description
+    // - page
+    // - pageSize
+    // 4.1 Test combination of filters
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @Test
+    void should_return_200_when_getting_recipes_for_logged_in_user() throws Exception {
+        String expectedJson = "{\"recipes\":{\"totalElements\":1,\"totalPages\":1,\"size\":100,\"content\":[{\"id\":" + current_recipe_id + ",\"description\":\"Recipe 1\",\"ingredients\":[\"ingredient1\",\"ingredient2\"],\"is_vegan\":true,\"num_servings\":4}],\"number\":0,\"sort\":{\"empty\":true,\"unsorted\":true,\"sorted\":false},\"numberOfElements\":1,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"unsorted\":true,\"sorted\":false},\"offset\":0,\"unpaged\":false,\"paged\":true},\"first\":true,\"last\":true,\"empty\":false}}";
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes")
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().isOk())
+           .andExpect(content().json(expectedJson));
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @Test
+    void should_return_one_result_when_is_vegan_is_true() throws Exception {
+        String expectedJsonIsVeganTrue = "{\"recipes\":{\"totalElements\":1,\"totalPages\":1,\"size\":100,\"content\":[{\"id\":" + current_recipe_id + ",\"description\":\"Recipe 1\",\"ingredients\":[\"ingredient1\",\"ingredient2\"],\"is_vegan\":true,\"num_servings\":4}],\"number\":0,\"sort\":{\"empty\":true,\"unsorted\":true,\"sorted\":false},\"numberOfElements\":1,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"unsorted\":true,\"sorted\":false},\"offset\":0,\"unpaged\":false,\"paged\":true},\"first\":true,\"last\":true,\"empty\":false}}";
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes?isVegan=true")
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().isOk())
+           .andExpect(content().json(expectedJsonIsVeganTrue));
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @Test
+    void should_return_zero_results_when_is_vegan_is_false() throws Exception {
+        String expectedJsonIsVeganFalse = "{\"recipes\":{\"totalElements\":0,\"totalPages\":0,\"first\":true,\"last\":true,\"size\":100,\"content\":[],\"number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":0,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"offset\":0,\"paged\":true,\"unpaged\":false},\"empty\":true}}";
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes?isVegan=false")
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().isOk())
+           .andExpect(content().json(expectedJsonIsVeganFalse));
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @ParameterizedTest
+    @CsvSource(value = {
+            "recipe",
+            "Recipe",
+            "ReCiPE",
+            "1"
+    })
+    void should_return_one_result_when_description_contains_input_text_after_applied_string_normalization(String searchText) throws Exception {
+        String expectedJsonDescriptionTextMatch = "{\"recipes\":{\"totalElements\":1,\"totalPages\":1,\"first\":true,\"last\":true,\"size\":100,\"content\":[{\"id\":" + current_recipe_id + ",\"description\":\"Recipe 1\",\"ingredients\":[\"ingredient1\",\"ingredient2\"],\"is_vegan\":true,\"num_servings\":4}],\"number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":1,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"offset\":0,\"paged\":true,\"unpaged\":false},\"empty\":false}}";
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes?description=" + searchText)
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().isOk())
+           .andExpect(content().json(expectedJsonDescriptionTextMatch));
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @Test
+    void should_return_zero_results_when_no_text_match_for_description() throws Exception {
+        String expectedJsonDescriptionTextNoMatch = "{\"recipes\":{\"totalElements\":0,\"totalPages\":0,\"first\":true,\"last\":true,\"size\":100,\"content\":[],\"number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":0,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"offset\":0,\"paged\":true,\"unpaged\":false},\"empty\":true}}";
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes?description=notfound")
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().isOk())
+           .andExpect(content().json(expectedJsonDescriptionTextNoMatch));
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @ParameterizedTest
+    @CsvSource(value = {
+            "Ingredient1,Ingredient2",
+            "Ingredient1,",
+            "Ingredient2,",
+    })
+    void should_return_one_result_when_matching_ingredients(String ingredient1, String ingredient2) throws Exception {
+        String expectedIngredientsMatch = "{\"recipes\":{\"totalElements\":1,\"totalPages\":1,\"first\":true,\"last\":true,\"size\":100,\"content\":[{\"id\":" + current_recipe_id + ",\"description\":\"Recipe 1\",\"ingredients\":[\"ingredient1\",\"ingredient2\"],\"is_vegan\":true,\"num_servings\":4}],\"number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":1,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"offset\":0,\"paged\":true,\"unpaged\":false},\"empty\":false}}";
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes?ingredients=" + ingredient1 + (ingredient2 != null ? ","+ingredient2 : ""))
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().isOk())
+           .andExpect(content().json(expectedIngredientsMatch));
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @ParameterizedTest
+    @CsvSource(value = {
+            "nonsense1,nonsense2",
+            "Ingredient10,",
+            "Ingredient20,",
+    })
+    void should_return_zero_results_when_no_matching_ingredients(String ingredient1, String ingredient2) throws Exception {
+        String expectedIngredientsMatch = "{\"recipes\":{\"totalElements\":0,\"totalPages\":0,\"first\":true,\"last\":true,\"size\":100,\"content\":[],\"number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":0,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"offset\":0,\"paged\":true,\"unpaged\":false},\"empty\":true}}";
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes?ingredients=" + (ingredient1 != null ? ingredient1 : "") + (ingredient2 != null ? ","+ingredient2 : ""))
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().isOk())
+           .andExpect(content().json(expectedIngredientsMatch));
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @Test
+    void should_return_one_result_when_filtering_on_ingredients_without_values() throws Exception {
+        String expectedIngredientsMatch = "{\"recipes\":{\"totalElements\":1,\"totalPages\":1,\"first\":true,\"last\":true,\"size\":100,\"content\":[{\"id\":" + current_recipe_id + ",\"description\":\"Recipe 1\",\"ingredients\":[\"ingredient1\",\"ingredient2\"],\"is_vegan\":true,\"num_servings\":4}],\"number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":1,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"offset\":0,\"paged\":true,\"unpaged\":false},\"empty\":false}}";
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes?ingredients=")
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().isOk())
+           .andExpect(content().json(expectedIngredientsMatch));
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @ParameterizedTest
+    @CsvSource(value = {
+            "Ingredient1,Ingredient2",
+            "Ingredient1,",
+            "Ingredient2,",
+    })
+    void should_return_zero_results_excluding_ingredients_filter_matches(String ingredient1, String ingredient2) throws Exception {
+        String expectedExcludeIngredientsMatch = "{\"recipes\":{\"totalElements\":0,\"totalPages\":0,\"first\":true,\"last\":true,\"size\":100,\"content\":[],\"number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":0,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"offset\":0,\"paged\":true,\"unpaged\":false},\"empty\":true}}";
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes?excludeIngredients=" + (ingredient1 != null ? ingredient1 : "") + (ingredient2 != null ? ","+ingredient2 : ""))
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().isOk())
+           .andExpect(content().json(expectedExcludeIngredientsMatch));
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @ParameterizedTest
+    @CsvSource(value = {
+            "nonsense1,nonsense2",
+            "Ingredient10,",
+            "Ingredient20,",
+    })
+    void should_return_one_result_excluding_ingredients_filter_does_not_match(String ingredient1, String ingredient2) throws Exception {
+        String expectedExcludedIngredientsNoMatch = "{\"recipes\":{\"totalElements\":1,\"totalPages\":1,\"first\":true,\"last\":true,\"size\":100,\"content\":[{\"id\":" + current_recipe_id + ",\"description\":\"Recipe 1\",\"ingredients\":[\"ingredient1\",\"ingredient2\"],\"is_vegan\":true,\"num_servings\":4}],\"number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":1,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"offset\":0,\"paged\":true,\"unpaged\":false},\"empty\":false}}";
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes?excludeIngredients=" + (ingredient1 != null ? ingredient1 : "") + (ingredient2 != null ? ","+ingredient2 : ""))
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().isOk())
+           .andExpect(content().json(expectedExcludedIngredientsNoMatch));
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @Test
+    void should_return_correct_pageNumber_and_pageSize() throws Exception {
+        String expectedPageNumberAndPageSizeResponse = "{\"recipes\":{\"totalElements\":1,\"totalPages\":1,\"first\":true,\"last\":true,\"size\":100,\"content\":[{\"id\":" + current_recipe_id + ",\"description\":\"Recipe 1\",\"ingredients\":[\"ingredient1\",\"ingredient2\"],\"is_vegan\":true,\"num_servings\":4}],\"number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":1,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"offset\":0,\"paged\":true,\"unpaged\":false},\"empty\":false}}";
+        mvc.perform(
+                   get("http://localhost:" + port + "/api/v1/recipes?page=0&pageSize=100")
+                           .header("Authorization", "Bearer")
+           )
+           .andExpect(status().isOk())
+           .andExpect(content().json(expectedPageNumberAndPageSizeResponse));
+    }
+
+
+    // Test createRecipe
+    // 1. Should return 201 when creating a recipe for logged-in user
+    // 2. Should return 401 when creating a recipe for unauthenticated user
+    // 3. Should return 400 when creating a recipe with invalid data
+    // 4. Should return 400 when creating a recipe with missing data
+
+    // Test updateRecipe
+    // 1. Should return 201 when updating a recipe for logged-in user
+    // 2. Should return 401 when updating a recipe for unauthenticated user
+    // 3. Should return 400 when updating a recipe with invalid data
+    // 4. Should return 404 when updating a recipe that does not exist
+    // 5. Should return 404 when updating a recipe for another user
+
+    // Test deleteRecipe
+    // 1. Should return 200 when deleting a recipe for logged-in user
+    // 2. Should return 401 when deleting a recipe for unauthenticated user
+    // 3. Should return 404 when deleting a recipe that does not exist
+    // 4. Should return 404 when deleting a recipe for another user
+
+    private void setUpCustomersAndPersist() {
+        customer1 = new Customer(CUSTOMER1_EMAIL, CUSTOMER1_FIRST_NAME, CUSTOMER1_LAST_NAME, CUSTOMER1_PASSWORD, Role.ROLE_USER);
+        Recipe customer1Recipe = new Recipe();
+        customer1Recipe.setDescription(CUSTOMER1_DESCRIPTION);
+        customer1Recipe.setIsVegan(CUSTOMER1_IS_VEGAN);
+        customer1Recipe.setNumServings(CUSTOMER1_NUM_SERVINGS);
+        customer1Recipe.setIngredients(Arrays.asList(CUSTOMER1_INGREDIENT_1, CUSTOMER1_INGREDIENT_2));
+        customer1Recipe.setCustomer(customer1);
+        customer1.setRecipes(List.of(customer1Recipe));
+
+        customer2 = new Customer(CUSTOMER2_EMAIL, CUSTOMER2_FIRST_NAME, CUSTOMER2_LAST_NAME, CUSTOMER2_PASSWORD, Role.ROLE_USER);
+        Recipe customer2Recipe = new Recipe();
+        customer2Recipe.setDescription(CUSTOMER_2_DESCRIPTION);
+        customer2Recipe.setIsVegan(CUSTOMER2_IS_VEGAN);
+        customer2Recipe.setNumServings(CUSTOMER2_NUM_SERVINGS);
+        customer2Recipe.setIngredients(Arrays.asList(CUSTOMER_2_INGREDIENT_1, CUSTOMER_2_INGREDIENT_2));
+        customer2Recipe.setCustomer(customer2);
+        customer2.setRecipes(List.of(customer2Recipe));
+
+        customerRepository.saveAllAndFlush(List.of(customer1, customer2));
+        this.current_recipe_id = customer1.getRecipes().get(0).getId();
+    }
+}
