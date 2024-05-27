@@ -3,6 +3,7 @@ package org.recipefinder.recipefinder.recipe;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -50,6 +51,10 @@ public class Recipe {
     @JsonProperty("is_vegan")
     private Boolean isVegan;
 
+    // add constraint that number must be 1 or greater
+
+    @NotNull(message = "Number of servings is required")
+    @Min(value = 1, message = "Number of servings must be 1 or greater")
     @Column(
             name = "num_servings",
             nullable = false,

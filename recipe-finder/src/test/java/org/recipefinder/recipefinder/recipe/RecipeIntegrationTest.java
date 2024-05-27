@@ -1,5 +1,6 @@
 package org.recipefinder.recipefinder.recipe;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -14,11 +15,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -26,9 +29,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -222,7 +227,7 @@ class RecipeIntegrationTest {
     void should_return_one_result_when_matching_ingredients(String ingredient1, String ingredient2) throws Exception {
         String expectedIngredientsMatch = "{\"recipes\":{\"totalElements\":1,\"totalPages\":1,\"first\":true,\"last\":true,\"size\":100,\"content\":[{\"id\":" + current_recipe_id + ",\"description\":\"Recipe 1\",\"ingredients\":[\"ingredient1\",\"ingredient2\"],\"is_vegan\":true,\"num_servings\":4}],\"number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":1,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"offset\":0,\"paged\":true,\"unpaged\":false},\"empty\":false}}";
         mvc.perform(
-                   get("http://localhost:" + port + "/api/v1/recipes?ingredients=" + ingredient1 + (ingredient2 != null ? ","+ingredient2 : ""))
+                   get("http://localhost:" + port + "/api/v1/recipes?ingredients=" + ingredient1 + (ingredient2 != null ? "," + ingredient2 : ""))
                            .header("Authorization", "Bearer")
            )
            .andExpect(status().isOk())
@@ -239,7 +244,7 @@ class RecipeIntegrationTest {
     void should_return_zero_results_when_no_matching_ingredients(String ingredient1, String ingredient2) throws Exception {
         String expectedIngredientsMatch = "{\"recipes\":{\"totalElements\":0,\"totalPages\":0,\"first\":true,\"last\":true,\"size\":100,\"content\":[],\"number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":0,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"offset\":0,\"paged\":true,\"unpaged\":false},\"empty\":true}}";
         mvc.perform(
-                   get("http://localhost:" + port + "/api/v1/recipes?ingredients=" + (ingredient1 != null ? ingredient1 : "") + (ingredient2 != null ? ","+ingredient2 : ""))
+                   get("http://localhost:" + port + "/api/v1/recipes?ingredients=" + (ingredient1 != null ? ingredient1 : "") + (ingredient2 != null ? "," + ingredient2 : ""))
                            .header("Authorization", "Bearer")
            )
            .andExpect(status().isOk())
@@ -268,7 +273,7 @@ class RecipeIntegrationTest {
     void should_return_zero_results_excluding_ingredients_filter_matches(String ingredient1, String ingredient2) throws Exception {
         String expectedExcludeIngredientsMatch = "{\"recipes\":{\"totalElements\":0,\"totalPages\":0,\"first\":true,\"last\":true,\"size\":100,\"content\":[],\"number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":0,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"offset\":0,\"paged\":true,\"unpaged\":false},\"empty\":true}}";
         mvc.perform(
-                   get("http://localhost:" + port + "/api/v1/recipes?excludeIngredients=" + (ingredient1 != null ? ingredient1 : "") + (ingredient2 != null ? ","+ingredient2 : ""))
+                   get("http://localhost:" + port + "/api/v1/recipes?excludeIngredients=" + (ingredient1 != null ? ingredient1 : "") + (ingredient2 != null ? "," + ingredient2 : ""))
                            .header("Authorization", "Bearer")
            )
            .andExpect(status().isOk())
@@ -285,7 +290,7 @@ class RecipeIntegrationTest {
     void should_return_one_result_excluding_ingredients_filter_does_not_match(String ingredient1, String ingredient2) throws Exception {
         String expectedExcludedIngredientsNoMatch = "{\"recipes\":{\"totalElements\":1,\"totalPages\":1,\"first\":true,\"last\":true,\"size\":100,\"content\":[{\"id\":" + current_recipe_id + ",\"description\":\"Recipe 1\",\"ingredients\":[\"ingredient1\",\"ingredient2\"],\"is_vegan\":true,\"num_servings\":4}],\"number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":1,\"pageable\":{\"pageNumber\":0,\"pageSize\":100,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"offset\":0,\"paged\":true,\"unpaged\":false},\"empty\":false}}";
         mvc.perform(
-                   get("http://localhost:" + port + "/api/v1/recipes?excludeIngredients=" + (ingredient1 != null ? ingredient1 : "") + (ingredient2 != null ? ","+ingredient2 : ""))
+                   get("http://localhost:" + port + "/api/v1/recipes?excludeIngredients=" + (ingredient1 != null ? ingredient1 : "") + (ingredient2 != null ? "," + ingredient2 : ""))
                            .header("Authorization", "Bearer")
            )
            .andExpect(status().isOk())
@@ -338,11 +343,143 @@ class RecipeIntegrationTest {
            .andExpect(content().json(expectedCombinedFiltersNoMatch));
     }
 
-    // Test createRecipe
-    // 1. Should return 201 when creating a recipe for logged-in user
-    // 2. Should return 401 when creating a recipe for unauthenticated user
-    // 3. Should return 400 when creating a recipe with invalid data
-    // 4. Should return 400 when creating a recipe with missing data
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @Test
+    void should_return_201_and_recipe_data_when_creating_new_recipe_with_valid_data() throws Exception {
+        String jsonPayload = objectMapper.writeValueAsString(
+                Map.of(
+                        "description", CUSTOMER1_DESCRIPTION,
+                        "is_vegan", CUSTOMER1_IS_VEGAN,
+                        "num_servings", CUSTOMER1_NUM_SERVINGS,
+                        "ingredients", List.of(CUSTOMER1_INGREDIENT_1, CUSTOMER1_INGREDIENT_2)
+                )
+        );
+
+        // Plus two since we manually create two recipes in the setUp method
+        RecipeDTO recipeDTO = new RecipeDTO(current_recipe_id + 2, CUSTOMER1_DESCRIPTION, CUSTOMER1_IS_VEGAN, CUSTOMER1_NUM_SERVINGS, Arrays.asList(CUSTOMER1_INGREDIENT_1, CUSTOMER1_INGREDIENT_2));
+        RecipeResponse expected = new RecipeResponse(HttpStatus.CREATED.value(), "Recipe created successfully", recipeDTO);
+
+        mvc.perform(
+                   post("http://localhost:" + port + "/api/v1/recipes")
+                           .header("Authorization", "Bearer")
+                           .contentType(MediaType.APPLICATION_JSON)
+                           .content(jsonPayload)
+           )
+           .andExpect(status().is(201))
+           .andExpect(content().json(objectMapper.writeValueAsString(expected)));
+    }
+
+    @Test
+    void should_return_403_when_trying_to_create_a_new_recipe_without_logging_in() throws Exception {
+        String jsonPayload = objectMapper.writeValueAsString(
+                Map.of(
+                        "description", CUSTOMER1_DESCRIPTION,
+                        "is_vegan", CUSTOMER1_IS_VEGAN,
+                        "num_servings", CUSTOMER1_NUM_SERVINGS,
+                        "ingredients", List.of(CUSTOMER1_INGREDIENT_1, CUSTOMER1_INGREDIENT_2)
+                )
+        );
+
+        mvc.perform(
+                   post("http://localhost:" + port + "/api/v1/recipes")
+                           .contentType(MediaType.APPLICATION_JSON)
+                           .content(jsonPayload)
+           )
+           .andExpect(status().is(403));
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @ParameterizedTest
+    @CsvSource(value = {
+            "no_description;{\"statusCode\":400,\"message\":\"Description is required\"}",
+            "no_is_vegan;{\"statusCode\":400,\"message\":\"Is vegan is required\"}",
+            "no_num_servings;{\"statusCode\":400,\"message\":\"Number of servings is required\"}",
+            "no_ingredients;{\"statusCode\":400,\"message\":\"Ingredients are required\"}"
+    }, delimiter = ';')
+    void should_return_401_when_trying_to_create_a_new_recipe_with_invalid_data(String missingValue, String expectedResponse) throws Exception {
+
+        Map<String, Object> payload = buildRecipePayload(missingValue);
+        String jsonPayload = objectMapper.writeValueAsString(payload);
+
+        mvc.perform(
+                   post("http://localhost:" + port + "/api/v1/recipes")
+                           .header("Authorization", "Bearer")
+                           .contentType(MediaType.APPLICATION_JSON)
+                           .content(jsonPayload)
+           )
+           .andExpect(status().is(400))
+           .andExpect(content().json(expectedResponse));
+    }
+
+    private Map<String, Object> buildRecipePayload(String missingValue) {
+        final String missing = missingValue;
+        return switch (missing) {
+            case "no_description" -> Map.of(
+                    "is_vegan", CUSTOMER1_IS_VEGAN,
+                    "num_servings", CUSTOMER1_NUM_SERVINGS,
+                    "ingredients", List.of(CUSTOMER1_INGREDIENT_1, CUSTOMER1_INGREDIENT_2)
+            );
+            case "no_is_vegan" -> Map.of(
+                    "description", CUSTOMER1_DESCRIPTION,
+                    "num_servings", CUSTOMER1_NUM_SERVINGS,
+                    "ingredients", List.of(CUSTOMER1_INGREDIENT_1, CUSTOMER1_INGREDIENT_2)
+            );
+            case "no_num_servings" -> Map.of(
+                    "description", CUSTOMER1_DESCRIPTION,
+                    "is_vegan", CUSTOMER1_IS_VEGAN,
+                    "ingredients", List.of(CUSTOMER1_INGREDIENT_1, CUSTOMER1_INGREDIENT_2)
+            );
+            case "no_ingredients" -> Map.of(
+                    "description", CUSTOMER1_DESCRIPTION,
+                    "is_vegan", CUSTOMER1_IS_VEGAN,
+                    "num_servings", CUSTOMER1_NUM_SERVINGS
+            );
+            default -> throw new IllegalStateException("Unexpected value: " + missing);
+        };
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @Test
+    void should_return_401_when_trying_to_create_a_new_recipe_num_serving_lt_1() throws Exception {
+        String expectedResponse = "{\"statusCode\":400,\"message\":\"Number of servings must be 1 or greater\"}";
+        Map<String, Object> payload = Map.of(
+                "description", CUSTOMER1_DESCRIPTION,
+                "num_servings", 0,
+                "is_vegan", CUSTOMER1_IS_VEGAN,
+                "ingredients", List.of(CUSTOMER1_INGREDIENT_1, CUSTOMER1_INGREDIENT_2)
+        );
+        String jsonPayload = objectMapper.writeValueAsString(payload);
+
+        mvc.perform(
+                   post("http://localhost:" + port + "/api/v1/recipes")
+                           .header("Authorization", "Bearer")
+                           .contentType(MediaType.APPLICATION_JSON)
+                           .content(jsonPayload)
+           )
+           .andExpect(status().is(400))
+           .andExpect(content().json(expectedResponse));
+    }
+
+    @WithMockUser(username = CUSTOMER1_EMAIL, password = CUSTOMER1_PASSWORD, roles = "USER")
+    @Test
+    void should_return_400_when_trying_to_create_a_new_recipe_with_invalid_data_type() throws Exception {
+        String expectedResponse = "{\"statusCode\":400,\"message\":\"Number of servings must be 1 or greater\"}";
+        Map<String, Object> payload = Map.of(
+                "description", CUSTOMER1_DESCRIPTION,
+                "num_servings", CUSTOMER1_NUM_SERVINGS,
+                "is_vegan", "yes",
+                "ingredients", List.of(CUSTOMER1_INGREDIENT_1, CUSTOMER1_INGREDIENT_2)
+        );
+        String jsonPayload = objectMapper.writeValueAsString(payload);
+
+        mvc.perform(
+                   post("http://localhost:" + port + "/api/v1/recipes")
+                           .header("Authorization", "Bearer")
+                           .contentType(MediaType.APPLICATION_JSON)
+                           .content(jsonPayload)
+           )
+           .andExpect(status().is(400));
+    }
 
     // Test updateRecipe
     // 1. Should return 201 when updating a recipe for logged-in user
