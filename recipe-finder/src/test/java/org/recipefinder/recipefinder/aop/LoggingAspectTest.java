@@ -30,15 +30,17 @@ class LoggingAspectTest {
 
     @Test
     void should_produce_logging_when_user_registers() throws Throwable {
+        //given
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = System.out;
         System.setOut(new PrintStream(baos));
-
         RegisterRequest r = new RegisterRequest("name", "lastname", "email", "pw");
         Object[] args = new Object[] {r};
+        //when
         when(proceedingJoinPoint.getArgs()).thenReturn(args);
         underTest.logRegister(proceedingJoinPoint);
         System.setOut(ps);
+        //then
         String logOutput = baos.toString();
         assertThat(logOutput).contains("Logging register")
                              .contains("Register request: email");
@@ -46,15 +48,17 @@ class LoggingAspectTest {
 
     @Test
     void should_produce_logging_when_costumer_performs_login() {
+        //given
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = System.out;
         System.setOut(new PrintStream(baos));
-
         RegisterRequest r = new RegisterRequest("name", "lastname", "email", "pw");
         Object[] args = new Object[] {r};
+        //when
         when(proceedingJoinPoint.getArgs()).thenReturn(args);
         underTest.logLogin(proceedingJoinPoint);
         System.setOut(ps);
+        //then
         String logOutput = baos.toString();
         assertThat(logOutput).contains("Logging login")
                              .contains("Login attempt for user: email");
