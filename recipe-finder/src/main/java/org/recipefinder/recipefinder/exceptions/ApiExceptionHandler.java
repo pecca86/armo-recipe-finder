@@ -1,5 +1,6 @@
 package org.recipefinder.recipefinder.exceptions;
 
+import jakarta.transaction.TransactionalException;
 import org.recipefinder.recipefinder.exceptions.customer.CustomerAlreadyExistsException;
 import org.recipefinder.recipefinder.exceptions.customer.CustomerNotFoundException;
 import org.recipefinder.recipefinder.exceptions.recipe.RecipeAccessException;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.transaction.TransactionSystemException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -49,6 +51,21 @@ public class ApiExceptionHandler {
         }
 
         return new ResponseEntity<>(new ApiException("The operation failed!", HttpStatus.INTERNAL_SERVER_ERROR, ZonedDateTime.now()), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(value = {TransactionSystemException.class})
+    public ResponseEntity<Object> handleTransactionalException(TransactionSystemException e) {
+        String error = e.getRootCause().getMessage();
+        if (error.contains("Email should be valid")) {
+            error = "Email should be valid";
+        }
+        ApiException exception = new ApiException(
+                error,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                ZonedDateTime.now()
+        );
+        LOGGER.error("TransactionalException: {}", e.getMessage(), e);
+        return new ResponseEntity<>(exception, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(value = {DataIntegrityViolationException.class})

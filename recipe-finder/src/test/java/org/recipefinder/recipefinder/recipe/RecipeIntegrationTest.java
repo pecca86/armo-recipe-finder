@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -38,6 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "spring.cache.type=none"
 )
+@ActiveProfiles("test")
 class RecipeIntegrationTest {
 
     private final String CUSTOMER1_EMAIL = "jd@jd.com";

@@ -19,6 +19,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -28,6 +29,7 @@ import static org.mockito.BDDMockito.given;
 import static org.hamcrest.Matchers.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
 class AuthenticationTest {
 
     private static final String EMAIL = "jd@jd.com";
@@ -114,6 +116,22 @@ class AuthenticationTest {
                    .body(".", hasKey("message"))
                    .and()
                    .body("message", equalTo("Please provide all required fields (email, firstName, lastName, password)"));
+    }
+
+    @Test
+    void should_not_be_able_to_register_with_malformed_email_address() {
+        RegisterRequest registerRequest = new RegisterRequest(FIRST_NAME, LAST_NAME, "jdjdc.com", PASSWORD);
+        RestAssured.given()
+                   .contentType("application/json")
+                   .body(registerRequest)
+                   .when()
+                   .post("/register")
+                   .then()
+                   .statusCode(400)
+                   .and()
+                   .body(".", hasKey("message"))
+                   .and()
+                   .body("message", equalTo("Email should be valid"));
     }
 
     @Test
