@@ -1,6 +1,5 @@
 package org.recipefinder.recipefinder.exceptions;
 
-import jakarta.transaction.TransactionalException;
 import org.recipefinder.recipefinder.exceptions.customer.CustomerAlreadyExistsException;
 import org.recipefinder.recipefinder.exceptions.customer.CustomerNotFoundException;
 import org.recipefinder.recipefinder.exceptions.recipe.RecipeAccessException;
@@ -59,9 +58,26 @@ public class ApiExceptionHandler {
         if (error.contains("Email should be valid")) {
             error = "Email should be valid";
         }
+
+        if (error.contains("First name should be valid")) {
+            error = "First name should be valid (Only letters)";
+        }
+
+        if (error.contains("First name should be between 2 and 20 characters")) {
+            error = "First name should be between 2 and 20 characters";
+        }
+
+        if (error.contains("Last name should be valid")) {
+            error = "Last name should be valid (only letters)";
+        }
+
+        if (error.contains("Last name should be between 2 and 20 characters")) {
+            error = "Last name should be between 2 and 20 characters";
+        }
+
         ApiException exception = new ApiException(
                 error,
-                HttpStatus.INTERNAL_SERVER_ERROR,
+                HttpStatus.BAD_REQUEST,
                 ZonedDateTime.now()
         );
         LOGGER.error("TransactionalException: {}", e.getMessage(), e);
@@ -105,11 +121,11 @@ public class ApiExceptionHandler {
     public ResponseEntity<Object> handleAuthenticationException(org.recipefinder.recipefinder.exceptions.AuthenticationException e) {
         ApiException exception = new ApiException(
                 e.getMessage(),
-                HttpStatus.UNAUTHORIZED,
+                HttpStatus.BAD_REQUEST,
                 ZonedDateTime.now()
         );
         LOGGER.error("AuthenticationException: {}", e.getMessage(), e);
-        return new ResponseEntity<>(exception, HttpStatus.UNAUTHORIZED);
+        return new ResponseEntity<>(exception, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(value = {HttpMessageNotReadableException.class})

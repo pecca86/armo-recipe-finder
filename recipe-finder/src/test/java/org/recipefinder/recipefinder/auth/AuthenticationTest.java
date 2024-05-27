@@ -103,24 +103,8 @@ class AuthenticationTest {
             "John, , jd@jd.com, password",
             ", Doe, jd@jd.com, password"
     })
-    void should_return_http_401_when_invalid_registration_data(String firstName, String lastName, String email, String password) {
+    void should_return_http_400_when_invalid_registration_data(String firstName, String lastName, String email, String password) {
         RegisterRequest registerRequest = new RegisterRequest(firstName, lastName, email, password);
-        RestAssured.given()
-                   .contentType("application/json")
-                   .body(registerRequest)
-                   .when()
-                   .post("/register")
-                   .then()
-                   .statusCode(401)
-                   .and()
-                   .body(".", hasKey("message"))
-                   .and()
-                   .body("message", equalTo("Please provide all required fields (email, firstName, lastName, password)"));
-    }
-
-    @Test
-    void should_not_be_able_to_register_with_malformed_email_address() {
-        RegisterRequest registerRequest = new RegisterRequest(FIRST_NAME, LAST_NAME, "jdjdc.com", PASSWORD);
         RestAssured.given()
                    .contentType("application/json")
                    .body(registerRequest)
@@ -131,7 +115,31 @@ class AuthenticationTest {
                    .and()
                    .body(".", hasKey("message"))
                    .and()
-                   .body("message", equalTo("Email should be valid"));
+                   .body("message", equalTo("Please provide all required fields (email, firstName, lastName, password)"));
+    }
+
+    @ParameterizedTest
+    @CsvSource(value = {
+            "John,Doe,aa.com,pw,Email should be valid",
+            "2John,Doe,aa@aa.com,pw,First name should be valid (Only letters)",
+            "A,Doe,aa@aa.com,pw,First name should be between 2 and 20 characters",
+            "Aaaaaaddffdfdsfdsfdfkdsjghroigjeofijefgioejfoeijfeoijfeosfijseoijf,Doe,aa@aa.com,pw,First name should be between 2 and 20 characters",
+            "John,2Doe,aa@aa.com,pw,Last name should be valid (only letters)",
+            "John,jhoifuehsfiuehsfiuhesfiuehsfiuehsfiuehsfiuhesfiuhesfiushfeiushfDoe,aa@aa.com,pw,Last name should be between 2 and 20 characters"
+    })
+    void should_not_be_able_to_register_with_malformed_information(String firstName, String lastName, String email, String password, String errorMsg) {
+        RegisterRequest registerRequest = new RegisterRequest(firstName, lastName, email, password);
+        RestAssured.given()
+                   .contentType("application/json")
+                   .body(registerRequest)
+                   .when()
+                   .post("/register")
+                   .then()
+                   .statusCode(400)
+                   .and()
+                   .body(".", hasKey("message"))
+                   .and()
+                   .body("message", equalTo(errorMsg));
     }
 
     @Test

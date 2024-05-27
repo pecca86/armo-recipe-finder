@@ -5,6 +5,8 @@ import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
 import org.recipefinder.recipefinder.auth.dto.*;
 import org.recipefinder.recipefinder.exceptions.customer.CustomerNotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +20,14 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final Bucket bucket;
 
-    public AuthenticationController(AuthenticationService authenticationService) {
+    @Autowired
+    public AuthenticationController(AuthenticationService authenticationService,
+                                    @Value("${rate.limit.capacity}") int rateLimitCapacity,
+                                    @Value("${rate.limit.refill.time}") int rateLimitRefillTime,
+                                    @Value("${rate.limit.tokens}") int rateLimitTokens) {
         this.authenticationService = authenticationService;
 
-        Bandwidth bandwidth = Bandwidth.classic(10, Refill.greedy(10, Duration.ofMinutes(1)));
+        Bandwidth bandwidth = Bandwidth.classic(rateLimitCapacity, Refill.greedy(rateLimitTokens, Duration.ofMinutes(rateLimitRefillTime)));
         this.bucket = Bucket.builder()
                             .addLimit(bandwidth)
                             .build();
