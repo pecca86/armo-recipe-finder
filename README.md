@@ -30,7 +30,7 @@ The API documentation for Authorization in OpenAPI format can be found [here](ht
 ## Persistence
 The API uses a PostgreSQL database for persistence. The database relationsships are the following:
 
-![img](https://github.com/) 
+![img](https://github.com/pecca86/armo-recipe-finder/blob/7777b5b143015e68e56e0df2090a06711599118e/documentation/schema_relations.png) 
 
 ## Architecture
 The application is built using the Spring Boot framework. The application is divided into three layers: Controller, Service, and Repository. 
@@ -40,4 +40,4 @@ the Repository layer is responsible for the database operations.
 The communication from outside the application to the Controller layer is done through the REST API.
 
 #### Architecture diagram
-![img](https://google.com)
+![img](https://github.com/pecca86/armo-recipe-finder/blob/7777b5b143015e68e56e0df2090a06711599118e/documentation/architecture.png)
