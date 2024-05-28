@@ -40,4 +40,4 @@ the Repository layer is responsible for the database operations.
 The communication from outside the application to the Controller layer is done through the REST API.
 
 #### Architecture diagram
-![img](https://github.com/pecca86/armo-recipe-finder/blob/7777b5b143015e68e56e0df2090a06711599118e/documentation/architecture.png)
+![img](https://github.com/pecca86/armo-recipe-finder/blob/24e64f5dcc2b5916221380cef8d51a51f7d6e1ee/documentation/architecture.png)
