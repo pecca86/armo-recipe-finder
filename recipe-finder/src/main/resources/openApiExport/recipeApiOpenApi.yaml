@@ -4,7 +4,7 @@ info:
   description: "Home Assignment for ABN AMRO"
   version: "1.0.0"
 servers:
-  - url: "https://armo_recipe_finder"
+  - url: "https://localhost:9000"
 paths:
   /api/v1/recipes/{recipeId}:
     get:
@@ -266,4 +266,6 @@ components:
           type: "integer"
           format: "int32"
         ingredients:
-          type: "string"
+          type: "array"
+          items:
+            type: "string"
