@@ -25,7 +25,7 @@ Allowing users to:
 ### Recipes API
 The API documentation for Recipes in OpenAPI format can be found [here](https://app.swaggerhub.com/apis/PEKKARANTAAHO86/Recipe-finder-Recipe-API/1.0.0-oas3).
 ### Authorization API
-The API documentation for Authorization in OpenAPI format can be found [here](https://app.swaggerhub.com/apis/PEKKARANTAAHO86/Recipe-finder-Auth-Api/1.0.0-oas3#/).
+The API documentation for Authorization in OpenAPI format can be found [here](https://app.swaggerhub.com/apis/PEKKARANTAAHO86/amro-recipe-finder-auth-api/1.0.0-oas3.1#/).
 
 ## Persistence
 The API uses a PostgreSQL database for persistence. The database relationsships are the following:
