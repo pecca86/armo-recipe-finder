@@ -23,7 +23,7 @@ Allowing users to:
 
 ## API Documentation
 ### Recipes API
-The API documentation for Recipes in OpenAPI format can be found [here](https://app.swaggerhub.com/apis/PEKKARANTAAHO86/Recipe-finder-Recipe-API/1.0.0-oas3).
+The API documentation for Recipes in OpenAPI format can be found [here](https://app.swaggerhub.com/apis/PEKKARANTAAHO86/amro-recipe-api/1.0.0).
 ### Authorization API
 The API documentation for Authorization in OpenAPI format can be found [here](https://app.swaggerhub.com/apis/PEKKARANTAAHO86/amro-recipe-finder-auth-api/1.0.0-oas3.1#/).
 
